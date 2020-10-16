@@ -1,35 +1,9 @@
+import itertools
 import sqlite3
+from pathlib import Path
+from typing import Any, Dict, List
 
-RECIPE_SCHEMA = {
-    "directions": "TEXT",
-    "difficulty": "TEXT",
-    "ingredients": "TEXT",
-    "description": "TEXT",
-    "photodata": "BLOB",  # TODO check
-    "source": "TEXT",
-    "name": "TEXT",
-    "notes": "TEXT",
-    "total_time": "TEXT",
-    "hash": "TEXT",
-    "categories": [],  # TODO build a categories table
-    "photo": "TEXT",
-    "created": "TEXT",  # ISO8601
-    "source_url": "http:\/\/smittenkitchen.com\/blog\/2015\/07\/very-blueberry-scones\/",
-    "servings": "TEXT",
-    "prep_time": "TEXT",
-    "photo_hash": "TEXT",
-    "rating": "INTEGER",
-    "image_url": "TEXT",
-    "nutritional_info": "TEXT",
-    "uid": "TEXT",
-    "cook_time": "TEXT",
-    "photos": [],  # TODO
-    "photo_large": "TEXT",
-}
-
-
-def create_table_sql() -> str:
-    pass
+SCHEMA_DIR = Path(__file__).parent / "sql"
 
 
 def best_fts_version():
@@ -47,74 +21,107 @@ def best_fts_version():
     return None
 
 
-def generate_and_populate_fts(conn, created_tables, cols, foreign_keys):
+def create_table(conn: sqlite3.Connection, table_name: str):
+    schema_file = SCHEMA_DIR / f"{table_name}.sql"
+    if not schema_file.exists():
+        known_schemas = [fl.name for fl in SCHEMA_DIR.iterdir()]
+        raise ValueError(
+            f"""
+            Being asked to create unknown table {table_name}.
+            I only know about {known_schemas}
+            """
+        )
+    creation_statement = schema_file.read_text()
+    cur = conn.cursor()
+    cur.execute(creation_statement)
+    conn.commit()
+
+
+def build_insertion_statement(table_name: str, d: Dict[str, Any]):
+    cols = ", ".join(d.keys())
+    placeholders = ":" + ", :".join(d.keys())
+    return f"INSERT INTO {table_name} ({cols}) VALUES ({placeholders});"
+
+
+def build_recipe_table(
+    conn: sqlite3.Connection, recipe_list: List[Dict[str, Any]]
+):
+    """Build the table containing recipe data
+
+    Parameters
+    ----------
+    conn : sqlite3.Connection
+        Connnection to the db
+    recipe_list : List[Dict[str, Any]]
+        A non-empty list of recipe dicts
     """
-    Partially via
-    via https://github.com/simonw/csvs-to-sqlite/blob/master/csvs_to_sqlite/utils.py
+    create_table(conn, "recipes")
+
+    insertion_statement = build_insertion_statement("recipes", recipe_list[0])
+    cur = conn.cursor()
+    cur.executemany(insertion_statement, recipe_list)
+    conn.commit()
+
+
+def build_list_table_with_mapping(
+    conn: sqlite3.Connection,
+    table_name: str,
+    single_item_name: str,
+    recipe_to_list: Dict[str, List[str]],
+):
+    mapping_table_name = f"recipes_to_{table_name}"
+    create_table(conn, table_name)
+    create_table(conn, mapping_table_name)
+    if len(recipe_to_list) > 0:
+        cur = conn.cursor()
+        unique_items = set(
+            itertools.chain.from_iterable(recipe_to_list.values())
+        )
+        item_ids = list(enumerate(unique_items))
+        cur.executemany(
+            f"INSERT INTO {table_name} (id, {single_item_name}) values (?,?);",
+            item_ids,
+        )
+        item_to_id = {item: _id for _id, item in item_ids}
+        mapping_table_values = (
+            (recipe_id, item_to_id[category])
+            for recipe_id, recipe_categories in recipe_to_list.items()
+            for category in recipe_categories
+        )
+        insert_statement = f"""
+            INSERT INTO
+                {mapping_table_name} (recipe_id, {single_item_name}_id)
+            VALUES
+                (?, ?)
+            ;
+        """
+        cur.executemany(
+            insert_statement, mapping_table_values,
+        )
+        conn.commit()
+
+
+def build_fts_table(conn: sqlite3.Connection):
+    """
+    TOOD: Is there a better way to do this?
     """
     fts_version = best_fts_version()
-    sql = []
-    fts_cols = ", ".join('"{}"'.format(c) for c in cols)
-    for table in created_tables:
-        sql.append(
-            'CREATE VIRTUAL TABLE "{content_table}_fts" USING {fts_version} ({cols}, content="{content_table}")'.format(
-                cols=fts_cols, content_table=table, fts_version=fts_version
-            )
-        )
-        if not foreign_keys:
-            # Select is simple:
-            select = "SELECT rowid, {cols} FROM [{content_table}]".format(
-                cols=fts_cols, content_table=table
-            )
-        else:
-            # Select is complicated:
-            # select
-            #     county, precinct, office.value, district.value,
-            #     party.value, candidate.value, votes
-            # from content_table
-            #     left join office on content_table.office = office.id
-            #     left join district on content_table.district = district.id
-            #     left join party on content_table.party = party.id
-            #     left join candidate on content_table.candidate = candidate.id
-            # order by content_table.rowid
-            select_cols = []
-            joins = []
-            table_seen_count = {}
-            for col in cols:
-                if col in foreign_keys:
-                    other_table, label_column = foreign_keys[col]
-                    seen_count = table_seen_count.get(other_table, 0) + 1
-                    table_seen_count[other_table] = seen_count
-                    alias = ""
-                    if seen_count > 1:
-                        alias = "table_alias_{}_{}".format(
-                            hashlib.md5(
-                                other_table.encode("utf8")
-                            ).hexdigest(),
-                            seen_count,
-                        )
-                    select_cols.append(
-                        '[{}]."{}"'.format(alias or other_table, label_column)
-                    )
-                    joins.append(
-                        'left join [{other_table}] {alias} on [{table}]."{column}" = [{alias_or_other_table}].id'.format(
-                            other_table=other_table,
-                            alias_or_other_table=alias or other_table,
-                            alias=alias,
-                            table=table,
-                            column=col,
-                        )
-                    )
-                else:
-                    select_cols.append('"{}"'.format(col))
-            select = "SELECT [{content_table}].rowid, {select_cols} FROM [{content_table}] {joins}".format(
-                select_cols=", ".join("{}".format(c) for c in select_cols),
-                content_table=table,
-                joins="\n".join(joins),
-            )
-        sql.append(
-            'INSERT INTO "{content_table}_fts" (rowid, {cols}) {select}'.format(
-                cols=fts_cols, content_table=table, select=select
-            )
-        )
-    conn.executescript(";\n".join(sql))
+    fts_cols = ", ".join(
+        ["directions", "ingredients", "source", "name", "notes"]
+    )
+    content_table = "recipes"
+    build_fts_statement = f"""
+        CREATE VIRTUAL TABLE {content_table}_fts USING {fts_version} (
+            {fts_cols},
+            content="{content_table}"
+        );
+        INSERT INTO "{content_table}_fts"
+            (rowid, {fts_cols})
+        SELECT
+            rowid, {fts_cols}
+        FROM [{content_table}]
+        ;
+    """
+    cur = conn.cursor()
+    cur.executescript(build_fts_statement)
+    conn.commit()
