@@ -35,6 +35,7 @@ def cli(
     recipes_to_categories = dict()
     recipes_to_photos = dict()
 
+    # A "paprikarecipe" file is a zip file containing gzipped JSON files
     for fl in zip_file.namelist():
         with zip_file.open(fl) as recipe_file:
             with gzip.open(recipe_file) as recipe_json:

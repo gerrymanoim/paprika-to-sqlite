@@ -1,6 +1,9 @@
 # Paprika To SQLite
 
-> Essentially a zip file containing gzipped JSON files
+Takes a `paprikarecipe` file exported from [Paprika](https://www.paprikaapp.com/) and converts it to an sqlite db.
+
+> A "paprikarecipe" file is essentially a zip file containing gzipped JSON files
+
 
 Tables:
 
