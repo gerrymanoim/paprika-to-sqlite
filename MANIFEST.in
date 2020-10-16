@@ -1,0 +1,1 @@
+include paprika_to_sqlite/sql/*.sql

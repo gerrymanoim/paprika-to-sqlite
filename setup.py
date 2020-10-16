@@ -19,9 +19,11 @@ setup(
     long_description=get_long_description(),
     long_description_content_type="text/markdown",
     author="Gerry Manoim",
+    author_email="Gerry Manoim <gerrymanoim@gmail.com>",
     version=VERSION,
     license="Apache License, Version 2.0",
     packages=find_packages(),
+    include_package_data=True,
     install_requires=[
         "click",
     ],
