@@ -9,7 +9,7 @@ Tables:
 - `recipes`
 - `recipes_to_categories`
 - `recipes_to_photos`
-- `catogories`
+- `categories`
 - `photos`
 
 
