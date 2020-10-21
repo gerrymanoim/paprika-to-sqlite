@@ -1,1 +1,2 @@
 include paprika_to_sqlite/sql/*.sql
+include paprika_to_sqlite/templates/*.html

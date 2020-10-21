@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>{{ name }}</h1>
+<p>{{ description }}</p>
+<img src="data:image/jpeg;base64, {{photo_data}}" />
+<ul>
+    <li>Cook Time: {{cook_time}}</li>
+    <li>Total Time: {{total_time}}</li>
+    <li><a href="{{source_url}}">{{source}}</a></li>
+</ul>
+
+
+<p>{{notes}}</p>
+
+<table>
+    <thead>
+        <tr>
+            <th>Ingredients</th>
+            <th>Directions</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>{{ ingredients }}</td>
+            <td>{{ directions }}</td>
+        </tr>
+    </tbody>
+</table>
+
+{% endblock %}
