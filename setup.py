@@ -27,10 +27,10 @@ setup(
     install_requires=[
         "click",
     ],
+    extras_require={"datasette": ["datasette"], "dev": ["flake8", "black"], },
     entry_points={
-        'console_scripts': [
-            'paprika-to-sqlite = paprika_to_sqlite.cli:cli',
-        ],
+        "datasette": ["paprika = paprika_to_sqlite.datasette_paprika"],
+        "console_scripts": ["paprika-to-sqlite = paprika_to_sqlite.cli:cli", ],
     },
     url="https://github.com/gerrymanoim/paprika-to-sqlite",
     classifiers=[
