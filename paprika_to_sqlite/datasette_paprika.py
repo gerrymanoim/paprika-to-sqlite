@@ -3,7 +3,7 @@ from datasette.utils.asgi import Response
 
 
 def can_render_paprika_recipe(database, table, view_name):
-    return database == "paprika" and table == "recipes" and view_name == "row"
+    return table == "recipes" and view_name == "row"
 
 
 async def paprika_recipe(request, datasette, rows):
