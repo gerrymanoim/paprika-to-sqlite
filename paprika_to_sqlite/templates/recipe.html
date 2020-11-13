@@ -3,7 +3,7 @@
 {% block content %}
 <h1>{{ name }}</h1>
 <p>{{ description }}</p>
-<img src="data:image/jpeg;base64, {{photo_data}}" />
+<img src="data:image/jpeg;base64, {{photo_data.decode()}}" />
 <ul>
     <li>Cook Time: {{cook_time}}</li>
     <li>Total Time: {{total_time}}</li>
