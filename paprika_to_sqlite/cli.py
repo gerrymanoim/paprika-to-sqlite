@@ -40,8 +40,12 @@ def cli(
         with zip_file.open(fl) as recipe_file:
             with gzip.open(recipe_file) as recipe_json:
                 recipe = json.load(recipe_json)
+                if recipe["photo_data"] is not None:
+                    recipe["photo_data"] = recipe["photo_data"].encode()
                 recipes_to_categories[recipe["uid"]] = recipe.pop("categories")
-                recipes_to_photos[recipe["uid"]] = recipe.pop("photos")
+                recipes_to_photos[recipe["uid"]] = [
+                    photo_data.encode() for photo_data in recipe.pop("photos")
+                ]
                 recipe_list.append(recipe)
 
     click.echo(f"Got {len(recipe_list)} recipes")
@@ -56,7 +60,7 @@ def cli(
         )
         click.echo("Building the photos tables. ")
         build_list_table_with_mapping(
-            conn, "photos", "photo", recipes_to_categories,
+            conn, "photos", "photo", recipes_to_photos,
         )
         click.echo("Building the recipes FTS tables. ")
         build_fts_table(conn)
