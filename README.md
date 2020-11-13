@@ -32,10 +32,16 @@ paprika-to-sqlite my_export.paprikarecipes paprika.db
 
 ### Usage with datasette
 
-If you have `paprika-to-sqlite` and `datasette` installed in the same environment, you can use `datasette` to look at any recipe (WIP feature). First, launch datasette:
+If you have `paprika-to-sqlite` and `datasette` installed in the same environment, you can use `datasette` to look at any recipe. First, launch datasette:
 
 ```
 datasette paprika.db
 ```
 
-Then you can append `.paprikarecipe` to any individual row url to get a rendered page for the recipe.
+This will add a `paprikarecipe` link to individual row pages:
+
+![Link Image](https://github.com/gerrymanoim/paprika-to-sqlite/raw/master/img/link.png)
+
+and a url handler for `/-/paprika-recipe/<recipe-id>`. This will display the recipe as a simple webpage:
+
+![Page Image](https://github.com/gerrymanoim/paprika-to-sqlite/raw/master/img/page.png)
